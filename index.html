@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Contract Hub — Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .step-dot{width:16px;height:16px;border-radius:9999px;transition:all 0.3s ease;position:relative}
+    .step-dot::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:white;opacity:0;transition:opacity 0.3s ease}
+    .step-dot.bg-emerald-500::after{opacity:1}
+    .chip{border-radius:9999px;padding:.4rem .8rem;font-size:.75rem;font-weight:500;transition:all 0.2s ease}
+    .card{border:1px solid #e2e8f0;border-radius:1.5rem;padding:1.5rem;background:white;box-shadow:0 4px 20px rgba(0,0,0,.08);transition:all 0.3s ease;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#6366f1,#8b5cf6,#06b6d4);opacity:0;transition:opacity 0.3s ease}
+    .card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.12)}
+    .card:hover::before{opacity:1}
+    .fade{animation:fade 0.4s ease-out}
+    @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    canvas{border:none;touch-action:none;transition:all 0.3s ease;background:#f8fafc;max-width:100%;height:auto;display:block}
+    canvas:hover{transform:scale(1.01)}
+    .canvas-container{overflow:hidden;border-radius:.75rem;border:2px dashed #cbd5e1;transition:border-color 0.3s ease;background:#f8fafc}
+    .canvas-container:hover{border-color:#6366f1}
+    .btn{transition:all 0.2s ease;font-weight:500;position:relative;overflow:hidden}
+    .btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);transition:left 0.5s ease}
+    .btn:hover::before{left:100%}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:white;box-shadow:0 4px 15px rgba(99,102,241,0.3)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.4)}
+    .btn-success{background:linear-gradient(135deg,#10b981,#059669);border:none;color:white;box-shadow:0 4px 15px rgba(16,185,129,0.3)}
+    .btn-success:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(16,185,129,0.4)}
+    .btn-warning{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:white;box-shadow:0 4px 15px rgba(245,158,11,0.3)}
+    .btn-warning:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,158,11,0.4)}
+    .btn-info{background:linear-gradient(135deg,#3b82f6,#1d4ed8);border:none;color:white;box-shadow:0 4px 15px rgba(59,130,246,0.3)}
+    .btn-info:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,0.4)}
+    .input-modern{border:2px solid #e2e8f0;border-radius:.75rem;padding:.75rem 1rem;transition:all 0.3s ease;background:#f8fafc;font-size:.9rem}
+    .input-modern:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.1);background:white;outline:none}
+    .status-connected{background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 2px 10px rgba(16,185,129,0.3)}
+    .status-disconnected{background:linear-gradient(135deg,#6b7280,#4b5563);color:white}
+    .step-line{height:2px;background:linear-gradient(90deg,#e2e8f0,#e2e8f0);transition:all 0.3s ease}
+    .step-line.active{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+    .pulse{animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .glass{background:rgba(255,255,255,0.8);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2)}
+  </style>
+</head>
+<body class="bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900">
+  <!-- NAV -->
+  <div class="glass border-b sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Contract Hub</h1>
+          <p class="text-sm text-gray-500">AI-Powered Contract Management</p>
+        </div>
+        <span id="statusPill" class="chip status-disconnected ml-3 pulse">DISCONNECTED</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <input id="baseUrl" class="input-modern w-80" value="https://sanjaysakthivel.app.n8n.cloud" placeholder="https://YOUR-n8n.app.n8n.cloud"/>
+        <button id="connectBtn" class="btn btn-primary px-6 py-2.5 rounded-xl">🔗 Connect</button>
+        <button id="loadBtn" class="btn btn-info px-6 py-2.5 rounded-xl">📄 Load Latest</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 py-6 space-y-4">
+    <!-- STEPPER -->
+    <section class="card">
+      <div class="text-center mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Contract Workflow</h2>
+        <p class="text-sm text-gray-600">Track your contract through each stage</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="step flex flex-col items-center gap-2 flex-1">
+          <div id="s1" class="step-dot bg-gray-300"></div>
+          <span class="text-xs font-medium text-gray-600">Generated</span>
+        </div>
+        <div class="step-line flex-1"></div>
+        <div class="step flex flex-col items-center gap-2 flex-1">
+          <div id="s2" class="step-dot bg-gray-300"></div>
+          <span class="text-xs font-medium text-gray-600">AI Reviewed</span>
+        </div>
+        <div class="step-line flex-1"></div>
+        <div class="step flex flex-col items-center gap-2 flex-1">
+          <div id="s3" class="step-dot bg-gray-300"></div>
+          <span class="text-xs font-medium text-gray-600">Human Review</span>
+        </div>
+        <div class="step-line flex-1"></div>
+        <div class="step flex flex-col items-center gap-2 flex-1">
+          <div id="s4" class="step-dot bg-gray-300"></div>
+          <span class="text-xs font-medium text-gray-600">Sent to User</span>
+        </div>
+        <div class="step-line flex-1"></div>
+        <div class="step flex flex-col items-center gap-2 flex-1">
+          <div id="s5" class="step-dot bg-gray-300"></div>
+          <span class="text-xs font-medium text-gray-600">Signed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN GRID -->
+    <section class="grid md:grid-cols-3 gap-4">
+      <!-- LEFT: Current + PDF -->
+      <div class="md:col-span-2 space-y-4">
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+              <h2 class="font-semibold text-lg">Current Contract</h2>
+            </div>
+            <span id="levelChip" class="chip bg-gray-100 text-gray-700">level: -</span>
+          </div>
+          <div id="currentBox" class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 border-l-4 border-indigo-200">Load a contract to begin.</div>
+        </div>
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h2 class="font-semibold text-lg">Contract PDF</h2>
+            </div>
+            <a id="openPdfLink" class="btn btn-info px-4 py-2 rounded-lg text-sm hidden" target="_blank">📄 Open in Drive</a>
+          </div>
+          <div id="pdfBox" class="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 border-l-4 border-blue-200">No PDF loaded yet.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Panels -->
+      <div class="space-y-4">
+        <div class="card">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <h2 class="font-semibold text-lg">Reviewer (HITL)</h2>
+          </div>
+          <div class="flex flex-col gap-3">
+            <div class="flex gap-2">
+              <button id="approveBtn" class="btn btn-success px-4 py-2.5 rounded-lg flex-1">✅ Approve</button>
+              <button id="changesBtn" class="btn btn-warning px-4 py-2.5 rounded-lg flex-1">✍️ Request Changes</button>
+            </div>
+            <textarea id="changesNote" class="input-modern w-full resize-none" rows="3" placeholder="Comments for changes (optional)"></textarea>
+            <p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">These call <code class="bg-gray-200 px-1 rounded">/webhook/hitl</code> with <code class="bg-gray-200 px-1 rounded">?approved=true|false</code>.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <h2 class="font-semibold text-lg">User Actions</h2>
+            </div>
+            <span class="chip bg-indigo-50 text-indigo-700">demo</span>
+          </div>
+          <div class="space-y-4">
+            <div class="flex gap-2">
+              <button id="summaryBtn" class="btn btn-primary px-4 py-2.5 rounded-lg flex-1">📋 Generate Summary</button>
+              <button id="userReviewBtn" class="btn btn-info px-4 py-2.5 rounded-lg flex-1">🤖 AI Review Again</button>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-purple-200">
+              <h3 class="font-medium text-sm text-gray-700 mb-2">Summary</h3>
+              <div id="summaryBox" class="text-sm text-gray-600 whitespace-pre-wrap">No summary yet.</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-emerald-200">
+              <h3 class="font-medium text-sm text-gray-700 mb-3">Digital Signature</h3>
+              <div class="space-y-3">
+                <input id="signName" class="input-modern w-full" placeholder="Your full name"/>
+                <div class="flex gap-2">
+                  <button id="clearSig" class="btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">🗑️ Clear</button>
+                  <button id="signBtn" class="btn btn-success px-4 py-2 rounded-lg flex-1">✍️ Sign & Submit</button>
+                </div>
+                <div class="mt-3 canvas-container">
+                  <canvas id="sigPad" width="480" height="140"></canvas>
+          </div>
+          </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+            <h2 class="font-semibold text-lg">Top Risks</h2>
+          </div>
+          <ul id="risks" class="space-y-2">
+            <li class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border-l-4 border-red-200">None yet.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section class="card">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-2 h-2 bg-cyan-500 rounded-full"></div>
+        <h2 class="font-semibold text-lg">Activity Timeline</h2>
+      </div>
+      <ul id="timeline" class="space-y-3">
+        <li class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border-l-4 border-cyan-200">No events yet.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 hidden bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl backdrop-blur-sm border border-gray-700 z-50"></div>
+
+<script>
+  // --- HARDCODED endpoints for demo ---
+  const STATUS_URL = "https://sanjaysakthivel.app.n8n.cloud/webhook/status?id=1hq_Rq_XNm29osZPSHT5E5HJ67JL2lia9";
+  const AI_REVIEW_URL = "https://sanjaysakthivel.app.n8n.cloud/webhook/another-ai?id=1hq_Rq_XNm29osZPSHT5E5HJ67JL2lia9";
+  const SUMMARY_URL = "https://sanjaysakthivel.app.n8n.cloud/webhook/another-ai?id=1hq_Rq_XNm29osZPSHT5E5HJ67JL2lia9";
+
+  // ---------- tiny helpers ----------
+  const el = id => document.getElementById(id);
+  function toast(msg){ const t=el('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),1700); }
+  function setDots(step){ 
+    [el('s1'),el('s2'),el('s3'),el('s4'),el('s5')].forEach((d,i)=>d.className="step-dot "+(i<step?"bg-emerald-500":"bg-gray-300"));
+    // Update step lines
+    document.querySelectorAll('.step-line').forEach((line,i)=>line.className="step-line flex-1 "+(i<step?"active":""));
+  }
+  function setLevel(level){ const map={red:["bg-red-100","text-red-700"],yellow:["bg-amber-100","text-amber-700"],green:["bg-emerald-100","text-emerald-700"]}; const c=map[level]||["bg-gray-100","text-gray-700"]; el('levelChip').className=`chip ${c[0]} ${c[1]}`; el('levelChip').textContent=`level: ${level||'-'}`;}
+  function drivePreviewFromWebViewLink(v){ if(!v) return null; const m=v.match(/\/d\/([^/]+)/); const id=m?m[1]:null; return id?`https://drive.google.com/file/d/${id}/preview`:v; }
+
+  const state = { baseUrl:"", latest:null, timeline:[] };
+  function pushEvent(event, note){ state.timeline.push({event, t:Date.now(), note}); renderTimeline(); }
+
+  function renderTimeline(){
+    el('timeline').innerHTML = state.timeline.slice().reverse().map(h =>
+      `<li class="fade bg-gray-50 rounded-lg p-3 border-l-4 border-cyan-200"><b class="text-gray-800">${h.event}</b> — <span class="text-gray-500">${new Date(h.t).toLocaleString()}</span> <span class="text-gray-500">${h.note||""}</span></li>`
+    ).join('') || `<li class="text-gray-500 bg-gray-50 rounded-lg p-3 border-l-4 border-cyan-200">No events yet.</li>`;
+  }
+
+  // ---------- connect / load ----------
+  el('connectBtn').onclick = () => {
+    const u = el('baseUrl').value.trim().replace(/\/+$/,'');
+    if(!u) return toast("Enter your n8n base URL");
+    state.baseUrl = u;
+    el('statusPill').textContent = "CONNECTED";
+    el('statusPill').className = "chip status-connected ml-3";
+    toast("Connected");
+  };
+
+  el('loadBtn').onclick = async () => {
+    try{
+      const r = await fetch(STATUS_URL, { headers:{ Accept:'application/json' }});
+      if(!r.ok) throw new Error("status failed");
+      const doc = await r.json();      // one document only
+      state.latest = doc;
+      renderCurrentFromDoc(doc);
+      pushEvent("Loaded latest contract", doc.reviewStatus || "");
+      toast("Latest loaded");
+    }catch(e){
+      toast("Load failed");
+    }
+  };
+
+  function renderCurrentFromDoc(doc){
+    const approved = doc.isContractApproved===true || doc.isContractApproved==="true";
+    const generated = doc.isContractGenerated===true || doc.isContractGenerated==="true";
+    const status = approved ? "HITL_APPROVED" : (generated? "GENERATED" : "PENDING");
+    const step = approved ? 4 : (generated ? 1 : 0);
+    setDots(step);
+    setLevel(approved ? "green" : (generated ? "yellow" : null));
+
+    el('currentBox').innerHTML = `
+      <div class="fade">Status: <b>${doc.reviewStatus||status}</b></div>
+      <div class="mt-1 text-gray-600">Approved: <b>${approved}</b> | Generated: <b>${generated}</b></div>
+    `;
+
+    const preview = drivePreviewFromWebViewLink(doc.webViewLink);
+    if(preview){
+      el('openPdfLink').classList.remove('hidden');
+      el('openPdfLink').href = doc.webViewLink;
+      el('pdfBox').innerHTML = `<iframe class="w-full h-96 border rounded" src="${preview}"></iframe>`;
+    }else{
+      el('openPdfLink').classList.add('hidden');
+      el('pdfBox').textContent = "No PDF link in record.";
+    }
+
+    // risks (demo placeholder)
+    el('risks').innerHTML = (doc.risks||[]).slice(0,5).map(r=>`<li class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border-l-4 border-red-200">${r.title||r.reason||r}</li>`).join('') || `<li class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border-l-4 border-red-200">None.</li>`;
+  }
+
+  // ---------- reviewer actions (HITL webhook) ----------
+  async function callHitl(approved, comments=""){
+    const qs = new URLSearchParams({ approved:String(approved), comments });
+    const url = `${state.baseUrl}/webhook/hitl?`+qs.toString();
+    const r = await fetch(url, { method:'GET' });
+    if(!r.ok) throw new Error("HITL failed");
+    return r.json().catch(()=>({ok:true}));
+  }
+
+  el('approveBtn').onclick = async ()=>{
+    if(!state.baseUrl) return toast("Connect first");
+    try{
+      await callHitl(true);
+      toast("Approved");
+      setDots(4); setLevel("green");
+      pushEvent("HITL Approved");
+    }catch(e){ toast("Approve failed"); }
+  };
+
+  el('changesBtn').onclick = async ()=>{
+    if(!state.baseUrl) return toast("Connect first");
+    try{
+      await callHitl(false, el('changesNote').value||"");
+      toast("Changes requested");
+      setDots(3); setLevel("yellow");
+      pushEvent("HITL Requested Changes", el('changesNote').value||"");
+      el('changesNote').value="";
+    }catch(e){ toast("Request failed"); }
+  };
+
+  // ---------- user buttons (demo no-op; wire to your /user/* later) ----------
+  el('summaryBtn').onclick = async () => {
+    try {
+      const r = await fetch(SUMMARY_URL, { headers: { Accept: "application/json" } });
+      const raw = await r.text();                 // handle JSON or plain text safely
+      let data; try { data = JSON.parse(raw); } catch { data = { review: raw }; }
+      const out = data.review ?? data.summary ?? data.result ?? raw;
+      el('summaryBox').textContent = typeof out === "string"
+        ? out
+        : JSON.stringify(out, null, 2);
+      pushEvent("Summary Generated");
+      toast("Summary ready");
+    } catch(e) {
+      toast("Summary failed");
+    }
+  };
+  el('userReviewBtn').onclick = async () => {
+    try{
+      const r = await fetch(AI_REVIEW_URL, { headers:{ Accept:'application/json' }});
+      const data = await r.json();
+      // Put whatever AI result in summary box or risks
+      el('summaryBox').textContent = JSON.stringify(data.review, null, 2);
+      pushEvent("AI Review Completed");
+      toast("AI review done");
+    }catch(e){
+      toast("AI review failed");
+    }
+  };
+
+  // --- Auto-connect and auto-load on page open ---
+  window.addEventListener('load', () => {
+    // Pretend "connected" and set baseUrl from the hardcoded URL's origin
+    state.baseUrl = new URL(STATUS_URL).origin;
+    el('baseUrl').value = state.baseUrl;
+    el('statusPill').textContent = "CONNECTED";
+    el('statusPill').className = "chip status-connected ml-3";
+    el('loadBtn').click();
+  });
+
+  // ---------- signature pad ----------
+  const pad = el('sigPad'), ctx = pad.getContext('2d'); let drawing=false, last=null;
+  
+  // Make canvas responsive
+  function resizeCanvas() {
+    const container = pad.parentElement;
+    const maxWidth = container.clientWidth - 4; // Account for border
+    const aspectRatio = 480 / 140;
+    const newWidth = Math.min(480, maxWidth);
+    const newHeight = newWidth / aspectRatio;
+    
+    pad.width = newWidth;
+    pad.height = newHeight;
+    pad.style.width = newWidth + 'px';
+    pad.style.height = newHeight + 'px';
+  }
+  
+  // Resize on load and window resize
+  window.addEventListener('load', resizeCanvas);
+  window.addEventListener('resize', resizeCanvas);
+  function pos(e){ const r=pad.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+  pad.addEventListener('mousedown',e=>{drawing=true; last=pos(e);});
+  pad.addEventListener('mousemove',e=>{ if(!drawing) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.lineWidth=2; ctx.stroke(); last=p;});
+  window.addEventListener('mouseup',()=>drawing=false);
+  pad.addEventListener('touchstart',e=>{drawing=true; last=pos(e); e.preventDefault();});
+  pad.addEventListener('touchmove',e=>{ if(!drawing) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.lineWidth=2; ctx.stroke(); last=p; e.preventDefault();});
+  pad.addEventListener('touchend',()=>drawing=false);
+  el('clearSig').onclick = ()=>ctx.clearRect(0,0,pad.width,pad.height);
+  el('signBtn').onclick = ()=>{ const name=el('signName').value.trim(); if(!name) return toast("Type your name"); const dataUrl=pad.toDataURL(); pushEvent("User Signed", name); toast("Signed (demo)"); };
+</script>
+</body>
+</html>

@@ -1,0 +1,951 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n    \"companyInfo\": {\n      \"partyA_name\": \"Acme Corp\",\n      \"partyA_address\": \"123 Corporate Blvd, Anytown, CA 90210\",\n      \"partyB_name\": \"Innovate Solutions LLC\",\n      \"partyB_address\": \"456 Partner Way, Tech City, NY 10001\"\n    },\n    \"termsAndConditions\": {\n      \"startDate\": \"2025-10-01\",\n      \"duration\": \"12 months (or until all services are delivered)\",\n      \"serviceScope\": \"Development of a new mobile application (iOS/Android) as per the attached Exhibit A specification, including three months of post-launch technical support.\",\n      \"paymentAmount\": \"$50,000 USD\",\n      \"paymentSchedule\": \"50% upfront, 25% upon Beta completion, 25% upon final delivery and acceptance.\",\n      \"noticePeriod\": \"30 days\"\n    }\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        128
+      ],
+      "id": "e5fda5bd-fb28-45d0-919b-49947d90b158",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=**Role:** You are a specialized Legal Document Generator AI. Your task is to draft a professional, standard-format service contract based *only* on the provided information.\n\n**Output Format:** Generate the complete contract text in clean, professional Markdown. Use clear headings for sections. DO NOT include any legal disclaimers, external commentary, or introductory/concluding remarks outside of the contract itself.\n\n**Contract Type:** Standard Service Agreement\n\n**Mandatory Sections to Include:**\n1.  **Preamble/Introduction:** Include the date and a brief statement of the agreement.\n2.  **Parties:** Define both parties clearly.\n3.  **Scope of Work/Services:** A detailed description of the services provided.\n4.  **Payment Terms:** Specify all compensation details.\n5.  **Term and Termination:** Define the contract duration and termination conditions.\n6.  **Confidentiality:** Standard non-disclosure clause.\n7.  **Governing Law:** State the jurisdiction for dispute resolution.\n8.  **Signatures:** Include placeholders for authorized signatures.\n\n**Input Data:** The contract must incorporate all of the following variables:\n\n-   **Party A Company Name:** {{ $json.companyInfo.partyA_name }}\n-   **Party A Address:** {{ $json.companyInfo.partyA_address }}\n-   **Party B Company Name:** {{ $json.companyInfo.partyB_name }}\n-   **Party B Address:** {{ $json.companyInfo.partyB_address }}\n-   **Contract Start Date:** {{ $json.termsAndConditions.startDate }}\n-   **Contract Duration:** {{ $json.termsAndConditions.duration }}\n-   **Service Description:** {{ $json.termsAndConditions.serviceScope }}\n-   **Payment Amount:** {{ $json.termsAndConditions.paymentAmount }}\n-   **Payment Schedule:** {{ $json.termsAndConditions.paymentSchedule }}\n-   **Termination Notice Period (Days):** {{ $json.termsAndConditions.noticePeriod }}\n\nAdd document title in the json."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        368,
+        0
+      ],
+      "id": "06a97c9b-fc69-4495-aa5b-37c04d1d9deb",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "hMlYKf8VJHEZ1bKD",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "1wn3nF6g3Zn8SYAES-ZP6wZNo4a_SxH3c",
+        "title": "={{ $json.message.content.title }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "3f415f2e-51cf-4222-82a1-4ccc327c9f49",
+      "name": "Create a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "PUT5LSY551mryygW",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $('Message a model').item.json.message.content.content }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        928,
+        0
+      ],
+      "id": "740265c4-80c5-44ac-90e9-58586a1042b2",
+      "name": "Update a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "PUT5LSY551mryygW",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.documentId }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "d3882254-1847-432f-a3f3-38b43ad7c1d8",
+      "name": "Download file",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "LDf5ITM6n9V6epxo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Message a model').item.json.message.content.title }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1wn3nF6g3Zn8SYAES-ZP6wZNo4a_SxH3c",
+          "mode": "list",
+          "cachedResultName": "contracts",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1wn3nF6g3Zn8SYAES-ZP6wZNo4a_SxH3c"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "1800d218-da4e-4ad2-92b7-5510f3b171ad",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "LDf5ITM6n9V6epxo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Update a document').item.json.documentId }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        272
+      ],
+      "id": "19b17af6-3b45-4896-b8a2-b339c423abf5",
+      "name": "Delete a file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "LDf5ITM6n9V6epxo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/contracts/create",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        0
+      ],
+      "id": "a8689bc8-c958-4995-839d-ba2de611dd56",
+      "name": "Webhook",
+      "webhookId": "06726be5-1cf2-4d76-b380-4e302c973848"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n\"review\":\"{{ $json.content.parts[0].text }}\"\n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET,POST,OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2128,
+        1360
+      ],
+      "id": "f714a037-aaf2-4449-9509-ec7c87b24892",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        320
+      ],
+      "id": "40b1ccbc-25d9-4939-b197-4caf3b070675",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Upload file').item.json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1552,
+        272
+      ],
+      "id": "7b3ede3a-aded-45ee-9df2-aa4972787ac4",
+      "name": "Share file",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "LDf5ITM6n9V6epxo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3446447-6cb1-4d86-80d6-7dc432f309bb",
+              "name": "webViewLink",
+              "value": "={{ $('Upload file').item.json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "763480f5-d0b4-462e-8bfc-028a9dd883d1",
+              "name": "isContractGenerated",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "bbf41c54-5a14-4837-ae10-65eca05534a1",
+              "name": "reviewStatus",
+              "value": "\"Pending Review\"",
+              "type": "string"
+            },
+            {
+              "id": "c31467e1-0e71-4316-8dfe-968f6fd42866",
+              "name": "isContractApproved",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "9af3c3ac-543c-4aa6-a0e3-17d0ec529e03",
+              "name": "filter_id",
+              "value": "={{ $('Upload file').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        272
+      ],
+      "id": "27391951-73a9-4289-b4d6-22dd9735ce6d",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "contracts",
+        "fields": "=webViewLink,isContractGenerated,reviewStatus,isContractApproved,filter_id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        288
+      ],
+      "id": "b5f45815-063b-46c0-bb61-243f0138bcf0",
+      "name": "Insert documents",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "KaZGaJpbNRaOtyyv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "check if the contract is correct with no errors."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        928,
+        816
+      ],
+      "id": "8b2be206-2954-4e9b-97e5-fc1af5d45e9d",
+      "name": "ai agent verify",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0U8EpXySHOQBiQ8m",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "17M_Z68rfNtLcySQmkJBRll6boLSplYNb",
+          "mode": "list",
+          "cachedResultName": "Service Agreement.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/17M_Z68rfNtLcySQmkJBRll6boLSplYNb/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        528,
+        816
+      ],
+      "id": "cba3590f-1448-460b-9012-301a353ce3f3",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OKE2rtacJYn6SaaQ",
+          "name": "vignesh account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        736,
+        816
+      ],
+      "id": "29f2dfc8-54b8-4fbf-b261-fb4c3b17250c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "path": "hitl",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        1104
+      ],
+      "id": "3a68bc34-de0f-4394-b1b9-5b2759ba945a",
+      "name": "hitl",
+      "webhookId": "a01ff3c7-30c1-4753-9b02-dc430f8a3756"
+    },
+    {
+      "parameters": {
+        "path": "/another-ai",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        816
+      ],
+      "id": "fc80f4bf-28c1-4e40-8701-fa2595101838",
+      "name": "gemini agent review",
+      "webhookId": "3f0e1777-7a4b-4c4e-873b-35c8215137be",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ad913f31-50d1-4eda-9ad8-ba8d70b59ac6",
+              "leftValue": "approved",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        1104
+      ],
+      "id": "00fe1c52-0752-4d7f-839e-0edd3363374c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"true\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        1008
+      ],
+      "id": "6cbb6a7d-a1d3-4d97-8436-3aa85a571748",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "collection": "contracts",
+        "options": {},
+        "query": "={\n  \"filter_id\":\"{{ $json.query.id }}\" \n}"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        352
+      ],
+      "id": "f5d4e2b4-bb6e-4cd8-b974-4cb2e16c176d",
+      "name": "Find documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "KaZGaJpbNRaOtyyv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "/status",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        48,
+        336
+      ],
+      "id": "e21bcaa5-b003-4a32-b47b-864c7968634c",
+      "name": "Webhook1",
+      "webhookId": "32bcdf1b-b825-48da-813d-2dcc57573bd6"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "contract",
+        "updateKey": "=filter_id",
+        "fields": "=reviewStatus",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        592
+      ],
+      "id": "01453d40-97e3-454b-b0d8-ebecfc75f155",
+      "name": "Update documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "KaZGaJpbNRaOtyyv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "/reviewstatus",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        608
+      ],
+      "id": "0af04968-7bfb-4b5c-be1b-27fb876c86db",
+      "name": "Webhook2",
+      "webhookId": "dade82f5-cc53-4d41-9d77-08739b665d9a"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "check if the contract is correct with no errors."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        1328
+      ],
+      "id": "2209fcc4-aa6c-4331-af55-c5e371ad2b6a",
+      "name": "ai agent verify1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0U8EpXySHOQBiQ8m",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.filter_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        1296
+      ],
+      "id": "913196cc-1e79-4ead-b40b-88b451bc5ef5",
+      "name": "Download file2",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "LDf5ITM6n9V6epxo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        1104
+      ],
+      "id": "24c666ec-d16b-4a52-8eff-5373c095128a",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "path": "/another-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        1296
+      ],
+      "id": "ee3d24c6-17ae-445b-8983-1400c914ce10",
+      "name": "gemini agent review1",
+      "webhookId": "3f0e1777-7a4b-4c4e-873b-35c8215137be"
+    },
+    {
+      "parameters": {
+        "collection": "contracts",
+        "options": {},
+        "query": "={\n  \"filter_id\":\"{{ $json.query.id }}\" \n}"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        1296
+      ],
+      "id": "abb58b4a-4798-4ac8-afa4-480cca09c3d7",
+      "name": "Find documents1",
+      "credentials": {
+        "mongoDb": {
+          "id": "KaZGaJpbNRaOtyyv",
+          "name": "MongoDB account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Delete a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        []
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "ai agent verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hitl": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini agent review": {
+      "main": [
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Find documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Update documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file2": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "ai agent verify1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini agent review1": {
+      "main": [
+        [
+          {
+            "node": "Find documents1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find documents1": {
+      "main": [
+        [
+          {
+            "node": "Download file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai agent verify1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8e557879-e30f-4016-a52c-2a3fb2cc16a1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "327279efc7e5e6dbbfd2adf304c477cebb693bdab06e15788355aa0bcad2eea0"
+  },
+  "id": "EXXp5gvfmcAooHY5",
+  "tags": []
+}
